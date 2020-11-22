@@ -1,11 +1,7 @@
 ---
 title: "Journal (reproducible report)"
-<<<<<<< Updated upstream
 author: "Philip Salmang "
-=======
-author: "Philip Salmang"
->>>>>>> Stashed changes
-date: "2020-11-05"
+date: "`r format(Sys.time(), '%d %B %Y')`"
 output:
   html_document:
     toc: true
@@ -50,7 +46,7 @@ So far this is just a blog where you can write in plain text and serve your writ
 
 So, let's say you are learning how to make a histogram in R. For example, maybe you want to sample 100 numbers from a normal distribution with mean = 0, and standard deviation = 1, and then you want to plot a histogram. You can do this right here by using an r code block, like this:
 
-```{r, eval = TRUE}
+```{r}
 samples <- rnorm(100, mean=0, sd=1)
 hist(samples)
 ```
