@@ -1,6 +1,10 @@
 ---
 title: "Journal (reproducible report)"
+<<<<<<< Updated upstream
 author: "Philip Salmang "
+=======
+author: "Philip Salmang"
+>>>>>>> Stashed changes
 date: "2020-11-05"
 output:
   html_document:
