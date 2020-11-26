@@ -11,7 +11,7 @@
 
 <meta name="author" content="Philip Salmang" />
 
-<meta name="date" content="2020-11-22" />
+<meta name="date" content="2020-11-26" />
 
 <title>Journal (reproducible report)</title>
 
@@ -25,6 +25,7 @@
 <link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
 <script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
 <link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 <link href="site_libs/anchor-sections-1.0/anchor-sections.css" rel="stylesheet" />
@@ -262,6 +263,9 @@ $(document).ready(function () {
 </style>
 
 <!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
 
 
 
@@ -401,20 +405,97 @@ div.tocify {
 
 <div class="fluid-row" id="header">
 
+<div class="btn-group pull-right">
+<button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
 
 
 <h1 class="title toc-ignore">Journal (reproducible report)</h1>
 <h4 class="author">Philip Salmang</h4>
-<h4 class="date">22 November 2020</h4>
+<h4 class="date">26 November 2020</h4>
 
 </div>
 
 
 <p><strong>IMPORTANT:</strong> You can delete everything in here and start fresh. You might want to start by not deleting anything above this line until you know what that stuff is doing.</p>
 <p>This is an <code>.Rmd</code> file. It is plain text with special features. Any time you write just like this, it will be compiled to normal text in the website. If you put a # in front of your text, it will create a top level-header.</p>
-<div id="my-first-post" class="section level1">
-<h1><span class="header-section-number">1</span> My first post</h1>
-<p>Last compiled: 2020-11-22</p>
+<div id="challenge-1" class="section level1">
+<h1><span class="header-section-number">1</span> Challenge 1</h1>
+<pre class="r"><code>library(tidyverse)
+library(lubridate)
+library(readxl)
+# import the data
+bikes_tbl &lt;- read_excel(&quot;/Users/philipsalmang/Documents/R/Business Data Science Basics/DS_101/00_data/01_bike_sales/01_raw_data/bikes.xlsx&quot;)
+orderlines_tbl &lt;- read_excel(&quot;/Users/philipsalmang/Documents/R/Business Data Science Basics/DS_101/00_data/01_bike_sales/01_raw_data/orderlines.xlsx&quot;)
+bikeshops_tbl  &lt;- read_excel(&quot;/Users/philipsalmang/Documents/R/Business Data Science Basics/DS_101/00_data/01_bike_sales/01_raw_data/bikeshops.xlsx&quot;)
+# 4.0 Joining Data ----
+bike_orderlines_joined_tbl &lt;- orderlines_tbl %&gt;% 
+  left_join(bikes_tbl, by = c(&quot;product.id&quot; = &quot;bike.id&quot;)) %&gt;%
+  left_join(bikeshops_tbl, by = c(&quot;customer.id&quot; = &quot;bikeshop.id&quot;))
+# 5.0 Wrangling Data ----
+bike_orderlines_wrangled_tbl &lt;- bike_orderlines_joined_tbl %&gt;%
+  separate(col = location,
+           into = c(&quot;city&quot;, &quot;state&quot;),
+           sep = &quot;,&quot;) %&gt;% 
+  separate(col = order.date,
+           into = c(&quot;order.year&quot;),
+           sep = &quot;-&quot;) %&gt;% 
+  mutate(total_price = quantity*price)
+
+sales_by_state &lt;- bike_orderlines_wrangled_tbl%&gt;% group_by(state) %&gt;% 
+  summarize(sales = sum(total_price)) %&gt;% 
+  mutate(sales_euro = scales::dollar(sales, big.mark = &quot;.&quot;,
+                                     decimal.mark = &quot;,&quot;,
+                                     prefix = &quot;&quot;,
+                                     suffix = &quot;€ &quot;))
+# 6. Graph for sales by state
+sales_by_state_plt &lt;-sales_by_state %&gt;%  ggplot(aes(x = state, y = sales)) + 
+  geom_col(fill = &quot;#2DC6D6&quot;) + 
+  labs(title = &quot;Revenue by State&quot;,
+       x = &quot;&quot;, 
+       y = &quot;Revenue&quot;) +
+  geom_label(aes(label = sales_euro),size=2) + # Adding labels to the bars
+  scale_y_continuous(labels = scales::dollar_format(big.mark = &quot;.&quot;, 
+                                                    decimal.mark = &quot;,&quot;, 
+                                                    prefix = &quot;&quot;, 
+                                                    suffix = &quot;€&quot;)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+show(sales_by_state_plt)</code></pre>
+<p><img src="journal_files/figure-html/plot-1.png" width="960" /></p>
+<pre class="r"><code># Analyze by state and by year using face_wrap
+
+sales_by_state_year &lt;- bike_orderlines_wrangled_tbl %&gt;% group_by(order.year, state) %&gt;% 
+  summarize(sales = sum(total_price))
+
+sales_by_state_year_plt &lt;- sales_by_state_year %&gt;%
+  # Set up x, y, fill
+  ggplot(aes(x = order.year, y = sales, fill = state)) +
+  
+  # Geometries
+  geom_col() + # Run up to here to get a stacked bar plot
+  # Adding the trend
+  geom_smooth(method = &quot;lm&quot;, se = FALSE) + # Adding a trendline
+  # Facet
+  facet_wrap(~state) +
+  
+  # Formatting
+  scale_y_continuous(labels = scales::dollar_format(big.mark = &quot;.&quot;, 
+                                                    decimal.mark = &quot;,&quot;, 
+                                                    prefix = &quot;&quot;, 
+                                                    suffix = &quot; €&quot;)) +
+  labs(
+    title = &quot;Revenue by year and state&quot;,
+    x = &quot;&quot;,
+    fill = &quot;&quot; # Changes the legend name
+  )
+show(sales_by_state_year_plt)</code></pre>
+<p><img src="journal_files/figure-html/plot-2.png" width="960" /></p>
+<p>Last compiled: 2020-11-26</p>
 <p>Notice that whatever you define as a top level header, automatically gets put into the table of contents bar on the left.</p>
 <div id="second-level-header" class="section level2">
 <h2><span class="header-section-number">1.1</span> Second level header</h2>
@@ -427,7 +508,7 @@ div.tocify {
 </div>
 <div id="my-second-post-note-the-order" class="section level1">
 <h1><span class="header-section-number">2</span> My second post (note the order)</h1>
-<p>Last compiled: 2020-11-22</p>
+<p>Last compiled: 2020-11-26</p>
 <p>I’m writing this tutorial going from the top down. And, this is how it will be printed. So, notice the second post is second in the list. If you want your most recent post to be at the top, then make a new post starting at the top. If you want the oldest first, do, then keep adding to the bottom</p>
 </div>
 <div id="adding-r-stuff" class="section level1">
@@ -436,8 +517,7 @@ div.tocify {
 <p>So, let’s say you are learning how to make a histogram in R. For example, maybe you want to sample 100 numbers from a normal distribution with mean = 0, and standard deviation = 1, and then you want to plot a histogram. You can do this right here by using an r code block, like this:</p>
 <pre class="r"><code>samples &lt;- rnorm(100, mean=0, sd=1)
 hist(samples)</code></pre>
-<p><img src="journal_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
-<p>When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You’ll learn that all of these things and more can be customized in each R code block.</p>
+<p><img src="journal_files/figure-html/unnamed-chunk-1-1.png" width="672" /> When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You’ll learn that all of these things and more can be customized in each R code block.</p>
 </div>
 
 
@@ -475,6 +555,11 @@ $(document).ready(function () {
 </script>
 
 <!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
 
 <script>
 $(document).ready(function ()  {
