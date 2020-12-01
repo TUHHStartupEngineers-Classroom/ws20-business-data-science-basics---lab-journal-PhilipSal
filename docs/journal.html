@@ -11,7 +11,7 @@
 
 <meta name="author" content="Philip Salmang" />
 
-<meta name="date" content="2020-11-26" />
+<meta name="date" content="2020-12-01" />
 
 <title>Journal (reproducible report)</title>
 
@@ -417,7 +417,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Journal (reproducible report)</h1>
 <h4 class="author">Philip Salmang</h4>
-<h4 class="date">26 November 2020</h4>
+<h4 class="date">01 December 2020</h4>
 
 </div>
 
@@ -495,7 +495,7 @@ sales_by_state_year_plt &lt;- sales_by_state_year %&gt;%
   )
 show(sales_by_state_year_plt)</code></pre>
 <p><img src="journal_files/figure-html/plot-2.png" width="960" /></p>
-<p>Last compiled: 2020-11-26</p>
+<p>Last compiled: 2020-12-01</p>
 <p>Notice that whatever you define as a top level header, automatically gets put into the table of contents bar on the left.</p>
 <div id="second-level-header" class="section level2">
 <h2><span class="header-section-number">1.1</span> Second level header</h2>
@@ -506,10 +506,134 @@ show(sales_by_state_year_plt)</code></pre>
 </div>
 </div>
 </div>
-<div id="my-second-post-note-the-order" class="section level1">
-<h1><span class="header-section-number">2</span> My second post (note the order)</h1>
-<p>Last compiled: 2020-11-26</p>
+<div id="challenge-2" class="section level1">
+<h1><span class="header-section-number">2</span> Challenge 2</h1>
+<p>Last compiled: 2020-12-01</p>
+<div id="challenge-2.2-small-database-from-rosebikes.de" class="section level2">
+<h2><span class="header-section-number">2.1</span> Challenge 2.2: Small Database from rosebikes.de</h2>
+<pre class="r"><code># 1.0 LIBRARIES ----
+
+library(tidyverse) # Main Package - Loads dplyr, purrr, etc.
+library(rvest)     # HTML Hacking &amp; Web Scraping
+library(xopen)     # Quickly opening URLs
+library(jsonlite)  # converts JSON files to R objects
+library(glue)      # concatenate strings
+library(stringi)   # character string/text processing
+
+
+url_home_rose &lt;- &quot;https://www.rosebikes.de&quot;
+html_home_rose &lt;- read_html(url_home_rose) 
+
+# 2.0 Retrieving urls off categories
+bike_url_rose_tbl &lt;- html_home_rose %&gt;% 
+  html_nodes(css = &quot;.main-navigation-category-with-tiles__item&gt; a&quot;) %&gt;% 
+  html_attr(&quot;href&quot;) %&gt;%
+  # remove sale category
+  discard(.p = ~stringr::str_detect(.x,&quot;sale&quot;)) %&gt;%
+  # make a dataframe and remove family_class for better overview
+  enframe(name = &quot;position&quot;, value = &quot;family_class&quot;) %&gt;%
+  mutate(bike_url = glue(&quot;{url_home_rose}{family_class}&quot;)) %&gt;%
+  subset(select = -family_class)
+
+### FOR TESTING WITH SINGLE URLS
+# # Retrieve all bike model urls
+# bike_url &lt;- bike_url_rose_tbl$bike_url[2]
+# html_bike_category &lt;- read_html(bike_url)
+# all_bike_model_urls_tbl &lt;- html_bike_category %&gt;%
+#   html_nodes(css = &quot;.row .align-middle &gt; a&quot;) %&gt;%
+#   html_attr(&quot;href&quot;) %&gt;%
+#   enframe(name = &quot;position&quot;, value = &quot;bike_model_url&quot;)%&gt;%
+#   mutate(bike_model_url = glue(&quot;{url_home_rose}{bike_model_url}&quot;))
+
+
+
+# 3.0 Retrieve bike URLS of every single bike
+get_all_urls &lt;- function(bike_main_url){
+  
+  html_bike_category &lt;- read_html(bike_main_url)
+  
+  bike_model_url_tbl &lt;- html_bike_category %&gt;%
+    html_nodes(css = &quot;.row .align-middle &gt; a&quot;) %&gt;%
+    html_attr(&quot;href&quot;) %&gt;%
+    enframe(name = &quot;position&quot;, value = &quot;bike_model_url&quot;)%&gt;%
+    mutate(bike_model_url = glue(&quot;{url_home_rose}{bike_model_url}&quot;))
+}
+
+# URLs of only categories 
+bike_cat_url_vec &lt;- bike_url_rose_tbl %&gt;% pull(bike_url)
+
+# Run the function with Category URLs as an argument to get ALL URLs
+bike_data_lst &lt;- map(bike_cat_url_vec, get_all_urls)
+bike_data_url_tbl &lt;- bind_rows(bike_data_lst)
+
+# 4.0 Retrieve ALL prices, Model Names, Categories and Subcategories
+# of individual bike models
+get_prices &lt;- function(bike_url){
+  html_bike &lt;- read_html(bike_url)
+  
+  # Bike Prices
+  bike_model_price_tbl &lt;- html_bike %&gt;%
+    html_nodes(css = &quot;.catalog-category-model__price-current-value&quot;) %&gt;%
+    str_replace(&quot;^[^\\n]+&quot;, &quot;&quot;) %&gt;%
+    # replace at the end everything after the last &quot;}&quot; with &quot;&quot;
+    str_replace(&quot;[^\\n]+$&quot;, &quot;&quot;) %&gt;% 
+    enframe(name = &quot;position&quot;, value = &quot;Price&quot;)
+  
+  # Bike Model Names
+  bike_model_name_tbl &lt;- html_bike %&gt;%
+    html_nodes(css = &quot;.catalog-category-model__title&quot;) %&gt;%
+    html_text() %&gt;%
+    enframe(name = &quot;position&quot;, value = &quot;Name&quot;)
+  
+  # Bike Categories
+  bike_category_tbl &lt;- html_bike %&gt;%
+    html_nodes(css = &quot;.catalog-breadcrumb__list-item-link&quot;) %&gt;%
+    html_attr(&quot;title&quot;) %&gt;%
+    enframe(name = &quot;position&quot;, value = &quot;Category&quot;)
+  
+  # Joint Table of bike proces and names
+  bike_tbl &lt;- bike_model_name_tbl %&gt;%
+    left_join(bike_model_price_tbl)
+  
+  # Add Bike Categories and Subcategories to bike_table
+  bike_tbl &lt;- bike_tbl %&gt;%
+    mutate(Category = bike_category_tbl$Category[3],
+           Subcategory = bike_category_tbl$Category[4]) %&gt;%
+    select(position, Category, Subcategory, Name, Price)
+}
+# URLs of ALL bikes
+all_bike_url_vec &lt;- bike_data_url_tbl %&gt;% pull(bike_model_url)
+
+bike_price_lst &lt;- map(all_bike_url_vec,get_prices)
+bike_price_tbl &lt;- bind_rows(bike_price_lst) %&gt;% select(-c(1)) 
+
+#####TEST ONLY
+## FOR TESTING WITH SINGLE URLS
+# find bike description price
+# bike_price_url &lt;- bike_data_url_tbl$bike_model_url[1]
+# html_bike_price_category &lt;- read_html(bike_price_url)
+# 
+# bike_model_price_tbl &lt;- html_bike_price_category %&gt;%
+#   html_nodes(css = &quot;.catalog-category-model__price-current&quot;) %&gt;%
+#   html_text() %&gt;%
+#   enframe(name = &quot;position&quot;, value = &quot;Price&quot;)
+# bike_model_name_tbl &lt;- html_bike_price_category %&gt;%
+#   html_nodes(css = &quot;.catalog-category-model__title&quot;) %&gt;%
+#   html_text() %&gt;%
+#   enframe(name = &quot;position&quot;, value = &quot;Name&quot;)
+# bike_category_tbl &lt;- html_bike_price_category %&gt;%
+#   html_nodes(css = &quot;.catalog-breadcrumb__list-item-link&quot;) %&gt;%
+#   html_attr(&quot;title&quot;) %&gt;%
+#   enframe(name = &quot;position&quot;, value = &quot;Category&quot;)
+# 
+# bike_table &lt;- bike_model_name_tbl %&gt;%
+#   left_join(bike_model_price_tbl)
+# bike_table &lt;- bike_table %&gt;%
+#   mutate(Category = bike_category_tbl$Category[3],
+#          Subcategory = bike_category_tbl$Category[4]) %&gt;%
+#   select(position, Category, Subcategory, Name, Price)</code></pre>
 <p>I’m writing this tutorial going from the top down. And, this is how it will be printed. So, notice the second post is second in the list. If you want your most recent post to be at the top, then make a new post starting at the top. If you want the oldest first, do, then keep adding to the bottom</p>
+</div>
 </div>
 <div id="adding-r-stuff" class="section level1">
 <h1><span class="header-section-number">3</span> Adding R stuff</h1>
@@ -517,7 +641,7 @@ show(sales_by_state_year_plt)</code></pre>
 <p>So, let’s say you are learning how to make a histogram in R. For example, maybe you want to sample 100 numbers from a normal distribution with mean = 0, and standard deviation = 1, and then you want to plot a histogram. You can do this right here by using an r code block, like this:</p>
 <pre class="r"><code>samples &lt;- rnorm(100, mean=0, sd=1)
 hist(samples)</code></pre>
-<p><img src="journal_files/figure-html/unnamed-chunk-1-1.png" width="672" /> When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You’ll learn that all of these things and more can be customized in each R code block.</p>
+<p><img src="journal_files/figure-html/unnamed-chunk-2-1.png" width="672" /> When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You’ll learn that all of these things and more can be customized in each R code block.</p>
 </div>
 
 
