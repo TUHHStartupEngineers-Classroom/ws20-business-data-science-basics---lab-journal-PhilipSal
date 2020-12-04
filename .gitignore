@@ -36,3 +36,5 @@ vignettes/*.pdf
 *.knit.md
 
 # R Environment Variables
+docs/test_df.csv
+test_df.csv
