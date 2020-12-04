@@ -11,7 +11,7 @@
 
 <meta name="author" content="Philip Salmang" />
 
-<meta name="date" content="2020-12-03" />
+<meta name="date" content="2020-12-04" />
 
 <title>Journal (reproducible report)</title>
 
@@ -417,7 +417,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Journal (reproducible report)</h1>
 <h4 class="author">Philip Salmang</h4>
-<h4 class="date">03 December 2020</h4>
+<h4 class="date">04 December 2020</h4>
 
 </div>
 
@@ -504,7 +504,7 @@ show(sales_by_state_year_plt)</code></pre>
 </div>
 <div id="challenge-2" class="section level1">
 <h1><span class="header-section-number">2</span> Challenge #2</h1>
-<p>Last compiled: 2020-12-03</p>
+<p>Last compiled: 2020-12-04</p>
 <div id="challenge-2.2-web-scraping-rosebikes.de" class="section level2">
 <h2><span class="header-section-number">2.1</span> Challenge 2.2: Web Scraping Rosebikes.de</h2>
 <pre class="r"><code># 1.0 LIBRARIES ----
@@ -535,28 +535,28 @@ bike_family_url_tbl &lt;- html_home_rose %&gt;%
 write_rds(bike_family_url_tbl, &quot;bike_family_url_tbl.rds&quot;)
 
 
-# 3.0 Retrieving bike URLs of every single bike model using the Category URLs
+# 3.0 Retrieving bike URLs of every single bike model using the Familiy URLs
 get_all_urls &lt;- function(bike_main_url){
   
-  html_bike_category &lt;- read_html(bike_main_url)
+  html_bike_family &lt;- read_html(bike_main_url)
   
-  bike_model_url_tbl &lt;- html_bike_category %&gt;%
+  bike_model_url_tbl &lt;- html_bike_family %&gt;%
     html_nodes(css = &quot;.row .align-middle &gt; a&quot;) %&gt;%
     html_attr(&quot;href&quot;) %&gt;%
     enframe(name = &quot;position&quot;, value = &quot;bike_model_url&quot;)%&gt;%
     mutate(bike_model_url = glue(&quot;{url_home_rose}{bike_model_url}&quot;))
 }
 
-# 3.1 URLs only of categories as a vector
+# 3.1 URLs only of families as a vector
 bike_family_url_vec &lt;- bike_family_url_tbl %&gt;% pull(bike_url)
 
-# 3.2 Run the function with Category URLs as an argument to get ALL URLs
+# 3.2 Run the function with Family URLs as an argument to get ALL URLs
 bike_model_url_lst &lt;- map(bike_family_url_vec, get_all_urls)
 bike_model_url_tbl &lt;- bind_rows(bike_model_url_lst)
 write_rds(bike_model_url_tbl, &quot;bike_model_url_tbl.rds&quot;)
 
 
-# 4.0 Retrieve ALL prices, Model Names, Categories and Subcategories
+# 4.0 Retrieve Families, Models, Names and Prices
 # of individual bike models
 get_bike_data &lt;- function(bike_url){
   html_bike &lt;- read_html(bike_url)
@@ -574,7 +574,7 @@ get_bike_data &lt;- function(bike_url){
   bike_model_price_tbl$Price_in_Euro &lt;- as.numeric(as.character(bike_model_price_tbl$Price_in_Euro))
   write_rds(bike_model_price_tbl, &quot;bike_model_price_tbl.rds&quot;)
   
-  # 4.2 Fetch Bike Model Names
+  # 4.2 Fetch Bike Names
   bike_model_name_tbl &lt;- html_bike %&gt;%
     html_nodes(css = &quot;.catalog-category-model__title&quot;) %&gt;%
     html_text() %&gt;%
@@ -582,7 +582,7 @@ get_bike_data &lt;- function(bike_url){
     enframe(name = &quot;position&quot;, value = &quot;Name&quot;)
   write_rds(bike_model_name_tbl, &quot;bike_model_name_tbl.rds&quot;)
   
-  # 4.3 Fetch Bike Categories and Subcategries for all Model Names
+  # 4.3 Fetch Bike Families and Models for all Bikes
   bike_category_tbl &lt;- html_bike %&gt;%
     html_nodes(css = &quot;.catalog-breadcrumb__list-item-link&quot;) %&gt;%
     html_attr(&quot;title&quot;) %&gt;%
@@ -593,30 +593,192 @@ get_bike_data &lt;- function(bike_url){
   bike_tbl &lt;- bike_model_name_tbl %&gt;%
     left_join(bike_model_price_tbl)
   
-  # 4.6 Add Bike Categories and Subcategories to bike_table
+  # 4.6 Add Bike Families and Models to bike_table
   bike_tbl &lt;- bike_tbl %&gt;%
-    mutate(Category = bike_category_tbl$Category[3],
-           Subcategory = bike_category_tbl$Category[4]) %&gt;%
-    select(position, Category, Subcategory, Name, Price_in_Euro)
+    mutate(Family = bike_category_tbl$Category[3],
+           Model= bike_category_tbl$Category[4]) %&gt;%
+    select(position, Family, Model, Name, Price_in_Euro)
 }
 # URLs of ALL bikes from 3.0
 bike_model_url_vec &lt;- bike_model_url_tbl %&gt;% pull(bike_model_url)
 
-# Run Function to get Categories and Subcategories, Model Names and prices
+# Run Function to get Families, Models, Names and Prices
 all_bike_date_lst &lt;- map(bike_model_url_vec,get_bike_data)
 all_bike_data_tbl &lt;- bind_rows(all_bike_date_lst) %&gt;% select(-c(1))
 view(all_bike_data_tbl)
 write_rds(all_bike_data_tbl, &quot;all_bike_data_tbl.rds&quot;)</code></pre>
+</div>
+</div>
+<div id="challenge-3" class="section level1">
+<h1><span class="header-section-number">3</span> Challenge #3</h1>
+<pre class="r"><code># 1.0 Libraries
+library(data.table)   # Extension of &#39;data.frame&#39; for fast manipulation of large Data 
+library(tidyverse)    # Main Package - Loads dplyr, purrr, etc.
+library(vroom)        # Read and Write Rectangular Text Data Quickly
+library(lubridate)
+
+
+# 2.0 Set up and defining columns that we are interested in
+# 2.0.1 for files that will be read
+col_types &lt;- list(
+  id = col_character(),
+  date = col_date(&quot;%Y-%m-%d&quot;),
+  num_claims = col_double())
+
+# 2.0.2 patent_assignee_col_types
+patent_assignee_col_types &lt;- list(patent_id = col_character(),   
+                                  assignee_id = col_character())
+
+# 2.0.3 assignee_col_types
+assignee_col_types &lt;- list(id = col_character(),
+                           type = col_character(),
+                           organization = col_character())
+
+# 2.0.4 uspc_tbl
+uspc_col_types &lt;- list(patent_id = col_character(), 
+                       mainclass_id = col_character() , 
+                       sequence = col_character())
+
+## 2.1 Reading data to create tables
+# 2.1.1 Creating patent_tbl
+patent_tbl &lt;- vroom(
+  file       = &quot;/Users/philipsalmang/Documents/R/Business Data Science Basics/DS_101/00_data/Patent/raw_data/patent.tsv&quot;, 
+  delim      = &quot;\t&quot;, 
+  col_types  = col_types,
+  na         = c(&quot;&quot;, &quot;NA&quot;, &quot;NULL&quot;)) 
+setDT(patent_tbl)
+
+# 2.1.2 Creating patent_assignee_tbl
+patent_assignee_tbl &lt;- vroom(
+  file       = &quot;/Users/philipsalmang/Documents/R/Business Data Science Basics/DS_101/00_data/Patent/raw_data/patent_assignee.tsv&quot;, 
+  delim      = &quot;\t&quot;, 
+  col_types  = patent_assignee_col_types,
+  na         = c(&quot;&quot;, &quot;NA&quot;, &quot;NULL&quot;))
+setDT(patent_assignee_tbl)
+
+# 2.1.3 Creating assignee_tbl
+assignee_tbl &lt;- vroom(
+  file       = &quot;/Users/philipsalmang/Documents/R/Business Data Science Basics/DS_101/00_data/Patent/raw_data/assignee.tsv&quot;, 
+  delim      = &quot;\t&quot;, 
+  col_types  = assignee_col_types,
+  na         = c(&quot;&quot;, &quot;NA&quot;, &quot;NULL&quot;))
+setDT(assignee_tbl)
+
+## 2.1.4 Creating uspc_tbl
+uspc_tbl &lt;- vroom(
+  file       = &quot;/Users/philipsalmang/Documents/R/Business Data Science Basics/DS_101/00_data/Patent/raw_data/uspc.tsv&quot;, 
+  delim      = &quot;\t&quot;, 
+  col_types  = uspc_col_types,
+  na         = c(&quot;&quot;, &quot;NA&quot;, &quot;NULL&quot;)) %&gt;%
+  # remove column sequence since it is not needed
+  subset(select = -sequence) 
+setDT(uspc_tbl)
+
+# make a uspc table with unique combos of patent_id and mainclass_id
+uspc_unique_tbl &lt;- uspc_tbl[, .(patent_id, mainclass_id)] %&gt;% unique()
+
+## 2.3 Merge necessary tables for extracting relevant data
+
+# 2.3.1 Merge patent_assignee_tbl and assignee_tbl
+
+patent_assignee_merge_dt &lt;- merge(x = assignee_tbl, y = patent_assignee_tbl,
+                                  by.x = &quot;id&quot;,
+                                  by.y = &quot;assignee_id&quot;)
+# 2.3.2 Merge patent_assignee_merge_dt and patent_tbl;
+# patent_dominance_dt used in Challenge 1 and 2 
+patent_dominance_dt &lt;- merge(x = patent_assignee_merge_dt, y = patent_tbl,
+                             by.x = &quot;patent_id&quot;,
+                             by.y = &quot;id&quot;,
+                             all.x = T, 
+                             all.y = F)
+
+# Change Date into year, month, day
+patent_dominance_dt &lt;- patent_dominance_dt[, .(patent_id, 
+                                               id,
+                                               type,
+                                               organization, 
+                                               year = year(date),
+                                               month = month(date),
+                                               day = day(date))]
+
+# 2.3.3 Merge patent_dominance_dt and uspc_tbl; 
+# patent_dominance_innovation_dt only used in Challenge 3
+
+patent_dominance_innovation_dt &lt;- merge(x = uspc_unique_tbl, 
+                                        y = patent_dominance_dt,
+                                        by = &quot;patent_id&quot;,
+                                        all.x = F, 
+                                        all.y = T)
+
+
+## 3.0 Challenge 1, Patent Dominance: What US company / corporation has the most patents? List the 
+# 10 US companies with the most assigned/granted patents.
+# include only type = 2,4,6,8,9 since these are US companies, sort by organizations
+# and count the number of Patents they have. Omit any N/A values. Sort by 
+# decreasing order
+patent_dominance_US_dt &lt;- 
+  patent_dominance_dt[!is.na(organization)][         # remove any rows containing NA 
+    type %in% c(2,4,6,8,9),.N, by = organization     # Filter for US companies and count
+  ][,.(Nr_Patents = N, organization)][               # Rename N 
+    order(Nr_Patents, decreasing = TRUE)             # Order Nr_Patents decreasing order
+  ][1:10,]                                           # slice to get first 10 companies
+write_rds(patent_dominance_US_dt,&quot;patent_dominance_US_dt.rds&quot;)
+
+## 4.0 Challenge 2, Recent patent acitivity: What US company had the most patents granted in July? 
+# List the top 10 companies with the most new granted patents for July. 
+# include only type = 2,4,6,8,9 since these are US companies, sort by organizations
+# and filter month 7 and count the number of Patents they have. 
+# Omit any N/A values. Sort by decreasing order
+patent_dominance_july_US_dt &lt;- 
+  patent_dominance_dt[
+    !is.na(organization)                             # remove any rows containing NA 
+  ][month == 7,.(id, type, organization)][           # Filter for month 7
+    type %in% c(2,4,6,8,9),.N, by = organization     # Filter for US companies and count 
+  ][,.(Nr_Patents = N, organization)][               # Rename N 
+    order(Nr_Patents,decreasing = TRUE)              # Order Nr_Patents decreasing order
+  ][1:10,]                                           # slice to get first 10 companies
+
+write_rds(patent_dominance_july_US_dt,&quot;patent_dominance_july_US_dt.rds&quot;)
+
+
+## 5.0 Challenge 3, Innovation in Tech:  What is the most innovative tech sector? 
+# For the top 10 companies (worldwide) with the most patents, 
+# what are the top 5 USPTO tech main classes?
+
+# 5.1 Extracting Top 10 Organizations with most patents
+patent_dominance_world_dt &lt;- 
+  patent_dominance_dt[!is.na(organization)][         # remove any rows containing NA 
+    ,.N, by = organization                           # Count the amount of patents for each company
+  ][,.(Nr_Patents = N, organization)][               # Rename N 
+    order(Nr_Patents,decreasing = TRUE)              # Order Nr_Patents decreasing order
+  ][1:10,]                                           # slice to get first 10 companies
+
+# 5.2 Extracting Top 5 mainclass_id of Top 10 Organizations with
+# patent_dominance_innovation_dt
+top_mainclass &lt;- merge(x = patent_dominance_world_dt,
+                       y = patent_dominance_innovation_dt,
+                       by = &quot;organization&quot;) %&gt;%   
+  # Remove unnecessary columns
+  subset(select = -c(id, type, year, month, day, Nr_Patents)) 
+
+# Extracting Top 5 mainclasses out of top_mainclass
+top_5_mainclass &lt;- 
+  top_mainclass[!is.na(mainclass_id)][               # remove any rows containing NA 
+    ,.N, by = mainclass_id                           # Count the amount of each mainclass_id
+  ][,
+    .(Nr_mainclass = N, mainclass_id)][              # Rename N 
+      order(Nr_mainclass, decreasing = TRUE)         # Order Nr_mainclass decreasing order
+    ][1:5,]                                          # slice to get first 5 mainclass_id
+write_rds(top_5_mainclass,&quot;top_5_mainclass.rds&quot;)</code></pre>
 <p>I’m writing this tutorial going from the top down. And, this is how it will be printed. So, notice the second post is second in the list. If you want your most recent post to be at the top, then make a new post starting at the top. If you want the oldest first, do, then keep adding to the bottom</p>
 </div>
-</div>
 <div id="adding-r-stuff" class="section level1">
-<h1><span class="header-section-number">3</span> Adding R stuff</h1>
+<h1><span class="header-section-number">4</span> Adding R stuff</h1>
 <p>So far this is just a blog where you can write in plain text and serve your writing to a webpage. One of the main purposes of this lab journal is to record your progress learning R. The reason I am asking you to use this process is because you can both make a website, and a lab journal, and learn R all in R-studio. This makes everything really convenient and in the same place.</p>
 <p>So, let’s say you are learning how to make a histogram in R. For example, maybe you want to sample 100 numbers from a normal distribution with mean = 0, and standard deviation = 1, and then you want to plot a histogram. You can do this right here by using an r code block, like this:</p>
 <pre class="r"><code>samples &lt;- rnorm(100, mean=0, sd=1)
 hist(samples)</code></pre>
-<p><img src="journal_files/figure-html/unnamed-chunk-2-1.png" width="672" /> When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You’ll learn that all of these things and more can be customized in each R code block.</p>
+<p><img src="journal_files/figure-html/unnamed-chunk-3-1.png" width="672" /> When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You’ll learn that all of these things and more can be customized in each R code block.</p>
 </div>
 
 
