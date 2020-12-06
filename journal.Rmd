@@ -19,7 +19,9 @@ knitr::opts_chunk$set(message=FALSE,warning=FALSE, cache=TRUE)
 # Intro to tidyverse
 Last compiled: `r Sys.Date()`
 
-The goal of this introduction was to give a rough overview on how data can be transformed and visualized. Therefore, packages, pipes, tibbles and basic transformation functions where tought.
+$~$
+
+The goal of this introduction was to give a rough overview on how data can be transformed and visualized. Therefore, packages, pipes, tibbles and basic transformation functions were taught.
 
 ## Challenge 1: Sales Analysis
 ```{r eval = FALSE, echo = TRUE, fig.width=10, fig.height=10}
@@ -96,22 +98,25 @@ show(sales_by_state_year_plt)
 The goal of the Challenge is to visualize the Revenue of each given state, here 12 in total. The first plot will visualize the revenue of each state in a bar plot. In the second part, 12 facet plots will be used to visualize each states revenue by year. The facet plots are helpful in order to visualize not only the revenue within each state, but a comparison between the states is also easily done. 
 
 ### Bar Plot: Revenue by State
-```{r}
+```{r echo=FALSE}
 sales_by_state_plt <- read_rds("sales_by_state_plt.rds")
 sales_by_state_plt
 ```
 
 ### Revenue Analysis from 2015 to 2019 by State
-```{r}
+```{r echo=FALSE}
 sales_by_state_year_plt <- read_rds("sales_by_state_year_plt.rds")
 sales_by_state_year_plt
 ```
 
 # Data Acquisition
 Last compiled: `r Sys.Date()`
+
+$~$
+
 In this Chapter we learned how to acquire large amount of data either via an API or via web scrapping. Both data acquisition methods were used in the following challenges
 
-## Challenge 1: Data Acquisition via API- Possible Destinations form Frankfurt Airport 
+## Challenge 1: Data Acquisition via API- Possible Destinations from Frankfurt Airport 
 
 ```{r eval = FALSE}
 library(httr)
@@ -346,7 +351,6 @@ all_bike_data_tbl
 # Data Wrangling
 Last compiled: `r Sys.Date()`
 
-In this chapter, the fundamentals of data wrangling and cleaning were provided. This way a nice and brief overview of large data can be given. A big part of this chapter was the introduction of `tibbles`which were used in all challenges. The entire code is given here in the beginning, but all snippets are also mentioned in the respective steps. Unfortunately, I had to work with the small data set since my laptop was not able to process the large data set.
 ```{r eval = FALSE}
 library(data.table)   # Extension of 'data.frame' for fast manipulation of large Data 
 library(tidyverse)    # Main Package - Loads dplyr, purrr, etc.
@@ -412,14 +416,14 @@ setDT(uspc_tbl)
 # make a uspc table with unique combos of patent_id and mainclass_id
 uspc_unique_tbl <- uspc_tbl[, .(patent_id, mainclass_id)] %>% unique()
 
-## 1.3 Merge necessary tables for extracting relevant data
+## 1.2 Merge necessary tables for extracting relevant data
 
-# 1.3.1 Merge patent_assignee_tbl and assignee_tbl
+# 1.2.1 Merge patent_assignee_tbl and assignee_tbl
 
 patent_assignee_merge_dt <- merge(x = assignee_tbl, y = patent_assignee_tbl,
                                   by.x = "id",
                                   by.y = "assignee_id")
-# 1.3.2 Merge patent_assignee_merge_dt and patent_tbl;
+# 1.2.2 Merge patent_assignee_merge_dt and patent_tbl;
 # patent_dominance_dt used in Challenge 1 and 2 
 patent_dominance_dt <- merge(x = patent_assignee_merge_dt, y = patent_tbl,
                              by.x = "patent_id",
@@ -436,7 +440,7 @@ patent_dominance_dt <- patent_dominance_dt[, .(patent_id,
                                                month = month(date),
                                                day = day(date))]
 
-# 1.3.3 Merge patent_dominance_dt and uspc_tbl; 
+# 1.2.3 Merge patent_dominance_dt and uspc_tbl; 
 # patent_dominance_innovation_dt only used in Challenge 3
 
 patent_dominance_innovation_dt <- merge(x = uspc_unique_tbl, 
@@ -506,6 +510,9 @@ top_5_mainclass <-
     ][1:5,]                                          # slice to get first 5 mainclass_id
 write_rds(top_5_mainclass,"top_5_mainclass.rds")
 ```
+
+In this chapter, the fundamentals of data wrangling and cleaning were provided. This way a nice and brief overview of large data can be given. A big part of this chapter was the introduction of `tibbles`which were used in all challenges. The entire code is given here in the beginning, but all snippets are also mentioned in the respective steps. Unfortunately, I had to work with the small data set since my laptop was not able to process the large data set. The first code given is the entire code. After that, the code snippets necessary for the respective challenge is given.
+
 
 ## Preparation of Data
 ```{r eval=TRUE}
@@ -684,6 +691,8 @@ patent_dominance_US_dt
 # Data Visualization
 Last compiled: `r Sys.Date()`
 
+$~$
+
 In the last chapter we were introduced to the visualization of our prior acquired and wrangled data. We were given up to date Covid-19 data which we plotted in two different ways.
 
 ## Challenge 1: Line plot- of COVID-19 cases 
@@ -797,6 +806,7 @@ covid_lin_cum_plot <- covid_cumCases_countries %>%
 ```
 
 In the following Challenge we were asked to plot the accumulated Covid-19 Cases for 5 countries  `Germany`,`France`,`UK`,`Spain` and the `US` until the present day. The Graph has been matched as closely as possible to the graph given in Chapter 5.
+
 ```{r}
 cases_worldwide <- readRDS("covid_lin_cum_plot.rds")
 cases_worldwide
@@ -916,7 +926,7 @@ gg <- gg + theme_minimal() +
                   )   
 ```
 
-For the last challenge we were supposed to create an heat map which represents the mortality rate of each country in the world. The Code as been added as usual and the Heat map is shown below. 
-Visualization of the distribution of the mortality rate (deaths / population) over the world.
+For the last challenge we were supposed to create an heat map which represents the `Mortality Rate` of each country in the world. The `Mortality Rate` in this case is calculated as `Cases/Population`. The Code as been added as usual and the Heat map is shown below. 
+
 
 ![](05-2_map-plot_morality-rate.png) 
