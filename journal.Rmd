@@ -98,13 +98,13 @@ show(sales_by_state_year_plt)
 The goal of the Challenge is to visualize the Revenue of each given state, here 12 in total. The first plot will visualize the revenue of each state in a bar plot. In the second part, 12 facet plots will be used to visualize each states revenue by year. The facet plots are helpful in order to visualize not only the revenue within each state, but a comparison between the states is also easily done. 
 
 ### Bar Plot: Revenue by State
-```{r echo=FALSE}
+```{r echo=FALSE, fig.width=10, fig.height=7}
 sales_by_state_plt <- read_rds("sales_by_state_plt.rds")
 sales_by_state_plt
 ```
 
 ### Revenue Analysis from 2015 to 2019 by State
-```{r echo=FALSE}
+```{r echo=FALSE, fig.width=10, fig.height=7}
 sales_by_state_year_plt <- read_rds("sales_by_state_year_plt.rds")
 sales_by_state_year_plt
 ```
